@@ -462,7 +462,7 @@ Jump:
 				_pc+=2;
 				break;
 
-        // *****************BUG duplicato
+        // *****************BUG duplicato o inesistente...
 //			case 0x2d:		// MOV B,[BP+D]
 //				_b=GetValue(_bp+_d);
 //				_b |= ((SWORD)GetValue(_bp+_d+1)) << 8;
@@ -2414,14 +2414,13 @@ aggLDI:
 						_g=_si;
 						break;
 
-					case 0x7d:		// MOV G,DI
+					case 0x7e:		// MOV G,DI
 						_g=_di;
 						break;
 
-//						BUG ********************************
-//					case 0x7d:		// DEC B
-//						_b--;
-//						break;
+					case 0x7d:		// DEC B
+						_b--;
+						break;
 
 					case 0x7f:		// SGT
 						;
