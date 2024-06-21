@@ -136,7 +136,7 @@ MOV B,G                         27FD          2
 MOV B,[D]                       2A            1
 MOV B,[D+@]                     2B            3
 MOV B,[BP+@]                    2C            3
-MOV B,[BP+D]                    2D            1		?????
+MOV B,[BP+D]                    2D            1		????? -> 26FD 21/6/24
 MOV B,[SP+@]                    2CFD          4
 MOV B,[@]                       29            3
 MOV B,@                         26            3
@@ -513,7 +513,8 @@ SGEU ""                         82FD          2
 SAND A,B                        A7FD          2               AND and place result in AL
 SOR  A,B                        A8FD          2               OR and place result in AL
 
-
+SAND32 GA,CB                    B1FD  6    NOP      1              
+SOR32  GA,CB                    B2FD  6    NOP      1     
 
 
 
