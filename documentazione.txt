@@ -136,7 +136,7 @@ MOV B,G                         27FD          2
 MOV B,[D]                       2A            1
 MOV B,[D+@]                     2B            3
 MOV B,[BP+@]                    2C            3
-MOV B,[BP+D]                    2D            1
+MOV B,[BP+D]                    2D            1		?????
 MOV B,[SP+@]                    2CFD          4
 MOV B,[@]                       29            3
 MOV B,@                         26            3
@@ -432,7 +432,7 @@ MOV G,B                         79FD          2
 MOV G,C                         7AFD          2
 MOV G,D                         7BFD          2
 MOV G,SI                        7CFD          2
-MOV G,DI                        7DFD          2
+MOV G,DI                        7EFD          2
 
 STI ""                          0CFD          2
 CLI ""                          0DFD          2
