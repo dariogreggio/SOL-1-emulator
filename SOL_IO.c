@@ -32,12 +32,11 @@ extern BYTE debug;
 #define ROM_SIZE 0x7fff				// 
 BYTE ram_seg[RAM_SIZE];
 BYTE rom_seg[ROM_SIZE];			
-volatile BYTE TIMIRQ,lineCntr;
-//http://searle.x10host.com/zx80/zx80.html
+volatile BYTE TIMIRQ;
 BYTE Keyboard[8]={255,255,255,255,255,255,255,255};
-BYTE M48T02[16];
-BYTE U16550_1[8],U16550_2[8],U16550_1alt[3],U16550_2alt[3];
-BYTE U8255_1[4],U8255_2[4];
+BYTE M48T02[8];
+BYTE U16550_0[8],U16550_1[8],U16550_0alt[3],U16550_1alt[3];
+BYTE U8255_0[4],U8255_1[4];
 BYTE U8253[8];
 BYTE NVRAM[64];
 
@@ -78,104 +77,134 @@ BYTE GetValue(SWORD t) {
 //_UART0_LSR       .equ $FF85        		 ; line status register
 // 6= Modem Status
 // 7= scratchpad
-    switch(t & 0xf) {
+    t &= 0x7;
+    switch(t) {
       case 0:
-        if(U16550_1[3] & 0x80) {
-          i=U16550_1alt[0];
+        if(U16550_0[3] & 0x80) {
+          i=U16550_0alt[0];
           }
         else {
           i=ReadUART1();
           }
         break;
       case 1:
-        if(U16550_1[3] & 0x80) {
-          i=U16550_1alt[1];
+        if(U16550_0[3] & 0x80) {
+          i=U16550_0alt[1];
           }
         else {
           if(DataRdyUART1())
-            U16550_1[1] |= 1;
+            U16550_0[1] |= 1;
           else
-            U16550_1[1] &= ~1;
+            U16550_0[1] &= ~1;
           if(!BusyUART1())
-            U16550_1[1] |= 2;
+            U16550_0[1] |= 2;
           else
-            U16550_1[1] &= ~2;
-          i=U16550_1[1];
+            U16550_0[1] &= ~2;
+          i=U16550_0[1];
           }
         break;
       case 2:
-        i=U16550_1[2];
+        i=U16550_0[2];
         break;
       case 3:
-        i=U16550_1[3];
+        i=U16550_0[3];
         break;
       case 4:
-        i=U16550_1[4];
+        i=U16550_0[4];
         break;
       case 5:
-        if(U16550_1[3] & 0x80) {
-//          i=U16550_1alt[2];
+        if(U16550_0[3] & 0x80) {
+//          i=U16550_0alt[2];
           }
         else {
           if(DataRdyUART1())
-            U16550_1[5] |= 1;
+            U16550_0[5] |= 1;
           else
-            U16550_1[5] &= ~1;
+            U16550_0[5] &= ~1;
           if(U1STAbits.FERR)
-            U16550_1[5] |= 8;
+            U16550_0[5] |= 8;
           else
-            U16550_1[5] &= ~8;
+            U16550_0[5] &= ~8;
           if(U1STAbits.OERR)
-            U16550_1[5] |= 2;
+            U16550_0[5] |= 2;
           else
-            U16550_1[5] &= ~2;
+            U16550_0[5] &= ~2;
           if(U1STAbits.PERR)
-            U16550_1[5] |= 4;
+            U16550_0[5] |= 4;
           else
-            U16550_1[5] &= ~4;
+            U16550_0[5] &= ~4;
           if(!BusyUART1())    // THR
-            U16550_1[5] |= 0x20;
+            U16550_0[5] |= 0x20;
           else
-            U16550_1[5] &= ~0x20;
+            U16550_0[5] &= ~0x20;
           if(!U1STAbits.UTXBF)    // TX
-            U16550_1[5] |= 0x40;
+            U16550_0[5] |= 0x40;
           else
-            U16550_1[5] &= ~0x40;
-          i=U16550_1[5];
+            U16550_0[5] &= ~0x40;
+          i=U16550_0[5];
           }
         break;
       case 6:
-        i=U16550_1[6];
+        i=U16550_0[6];
         break;
       case 7:
-        i=U16550_1[7];
+        i=U16550_0[7];
         break;
       }
     }
   else if(t>=0xff90 && t<=0xff9f) {        // UART 1
-    i=U16550_2[t & 0xf];
+    t &= 0x7;
+    i=U16550_1[t];
     }
   else if(t>=0xffa0 && t<=0xffaf) {        // RTC
-    switch(t) {
+//Address  Data D7 D6 D5 D4 D3 D2 D1 D0  Function/range BCD format
+//7FF 10 years Year Year 00-99
+//7FE 0 0 0 10 M Month Month 01-12
+//7FD 0 0 10 date Date Date 01-31
+//7FC 0 FT 0 0 0 Day Day 01-07
+//7FB 0 0 10 hours Hours Hours 00-23
+//7FA 0 10 minutes Minutes Minutes 00-59
+//7F9 ST 10 seconds Seconds Seconds 00-59
+//7F8 W R S Calibration Control
+    t &= 0x7;
+    switch(t) {   // BCD!!
       case 0:
+//        M48T02[0]= 0;   // flag IRQ
         break;
-      case 1:     // il bit 7 attiva/disattiva NMI boh??
-        switch(M48T02[0] & 0xf) {
-          case 0:
-            break;
-          default:      // qua ci sono i 4 registri e poi la RAM
-            break;
-          }
+      case 1:
+        M48T02[1]=currentTime.sec;
+        break;
+      case 2:
+        M48T02[2]=currentTime.min;
+        break;
+      case 3:
+        M48T02[3]=currentTime.hour;
+        break;
+      case 4:
+        M48T02[4]=currentDate.weekday;
+        break;
+      case 5:
+        M48T02[5]=currentDate.mday;
+        break;
+      case 6:
+        M48T02[6]=currentDate.mon;
+        break;
+      case 7:
+        M48T02[7]=currentDate.year;
         break;
       }
+    i=M48T02[t];
     }
   else if(t>=0xffb0 && t<=0xffbf) {        // PIO 0
-    i=U8255_1[t & 0xf];
+    t &= 0x3;
+    i=U8255_0[t];
     }
   else if(t>=0xffc0 && t<=0xffcf) {        // PIO 1
-    i=U8255_2[t & 0xf];
+    t &= 0x3;
+    i=U8255_1[t];
     }
   else if(t>=0xffd0 && t<=0xffdf) {        // IDE
+    t &= 0xf;
 
     }
   else if(t>=0xffe0 && t<=0xffef) {        // Timer
@@ -183,21 +212,12 @@ BYTE GetValue(SWORD t) {
 //_TIMER_C_1       .equ $FFE1        		 ; TIMER COUNTER 1
 //_TIMER_C_2       .equ $FFE2        		 ; TIMER COUNTER 2
 //_TIMER_CTRL      .equ $FFE3        		 ; TIMER CONTROL REGISTER
-    i=U8253[t & 0xf];
+    t &= 0x3;
+    i=U8253[t];
     }
   else if(t>=0xfff0 && t<=0xffff) {        // NV-RAM
-    switch(t) {
-      case 0:
-        break;
-      case 1:     // il bit 7 attiva/disattiva NMI boh??
-        switch(NVRAM[0] & 0xf) {
-          case 0:
-            break;
-          default:      // qua ci sono i 4 registri e poi la RAM
-            break;
-          }
-        break;
-      }
+    t &= 0x3f;
+    i=NVRAM[t];
     }
 
 	return i;
@@ -260,38 +280,39 @@ void PutValue(SWORD t,BYTE t1) {
 //_UART0_LSR       .equ $FF85        		 ; line status register
 // 6= Modem Status
 // 7= scratchpad
-    switch(t & 0xf) {
+    t &= 0x7;
+    switch(t) {
       case 0:
-        if(U16550_1[3] & 0x80) {
+        if(U16550_0[3] & 0x80) {
           DWORD baudRateDivider;
-          U16550_1alt[0]=t;
+          U16550_0alt[0]=t;
 set_uart1:
-          baudRateDivider = (GetPeripheralClock()/(4*MAKEWORD(U16550_1alt[0],U16550_1alt[1]))-1)
-              /*U16550_1alt[2]*/;
+          baudRateDivider = (GetPeripheralClock()/(4*MAKEWORD(U16550_0alt[0],U16550_0alt[1]))-1)
+              /*U16550_0alt[2]*/;
           U6BRG=baudRateDivider;
           }
         else {
-          U16550_1[0]=t1;
+          U16550_0[0]=t1;
           WriteUART1(t1);
           }
         break;
       case 1:
-        if(U16550_1[3] & 0x80) {
-          U16550_1alt[1]=t;
+        if(U16550_0[3] & 0x80) {
+          U16550_0alt[1]=t;
           goto set_uart1;
           }
         else {
-          U16550_1[1]=t1;
+          U16550_0[1]=t1;
           }
         break;
       case 2:
-        U16550_1[2]=t1;
+        U16550_0[2]=t1;
         break;
       case 3:
-        U16550_1[3]=t1;
+        U16550_0[3]=t1;
         break;
       case 4:
-        U16550_1[4]=t1;
+        U16550_0[4]=t1;
         break;
       case 5:
         if(U16550_1[3] & 0x80) {
@@ -310,29 +331,60 @@ set_uart1:
       }
     }
   else if(t>=0xff90 && t<=0xff9f) {        // UART 1
-    U16550_2[t & 0xf]=t1;
+    t &= 0x7;
+    U16550_1[t]=t1;
     }
   else if(t>=0xffa0 && t<=0xffaf) {        // RTC
-    switch(t) {
+//Address  Data D7 D6 D5 D4 D3 D2 D1 D0  Function/range BCD format
+//7FF 10 years Year Year 00-99
+//7FE 0 0 0 10 M Month Month 01-12
+//7FD 0 0 10 date Date Date 01-31
+//7FC 0 FT 0 0 0 Day Day 01-07
+//7FB 0 0 10 hours Hours Hours 00-23
+//7FA 0 10 minutes Minutes Minutes 00-59
+//7F9 ST 10 seconds Seconds Seconds 00-59
+//7F8 W R S Calibration Control
+    t &= 0x7;
+    M48T02[t] = t1;
+    switch(t) {   // BCD!!
       case 0:
+//        M48T02[0]= 0;   // flag IRQ
         break;
-      case 1:     // il bit 7 attiva/disattiva NMI boh??
-        switch(M48T02[0] & 0xf) {
-          case 0:
-            break;
-          default:      // qua ci sono i 4 registri e poi la RAM
-            break;
-          }
+      case 1:
+        currentTime.sec=M48T02[1];
+        break;
+      case 2:
+        currentTime.min=M48T02[2];
+        break;
+      case 3:
+        currentTime.hour=M48T02[3];
+        break;
+      case 4:
+        currentDate.weekday=M48T02[4];
+        break;
+      case 5:
+        currentDate.mday=M48T02[5];
+        break;
+      case 6:
+        currentDate.mon=M48T02[6];
+        break;
+      case 7:
+        currentDate.year=M48T02[7];
         break;
       }
     }
   else if(t>=0xffb0 && t<=0xffbf) {        // PIO 0
-    U8255_1[t & 0xf]=t1;
+    t &= 0x3;
+    U8255_0[t]=t1;
+    PlotDisplay(0,t1 >> 4,1);
+    PlotDisplay(1,t1 & 0xf,1);
     }
   else if(t>=0xffc0 && t<=0xffcf) {        // PIO 1
-    U8255_2[t & 0xf]=t1;
+    t &= 0x3;
+    U8255_1[t]=t1;
     }
   else if(t>=0xffd0 && t<=0xffdf) {        // IDE
+    t &= 0xf;
 
     }
   else if(t>=0xffe0 && t<=0xffef) {        // Timer
@@ -340,19 +392,16 @@ set_uart1:
 //_TIMER_C_1       .equ $FFE1        		 ; TIMER COUNTER 1
 //_TIMER_C_2       .equ $FFE2        		 ; TIMER COUNTER 2
 //_TIMER_CTRL      .equ $FFE3        		 ; TIMER CONTROL REGISTER
-    U8253[t & 0xf]=t1;
+    t &= 0x3;
+    U8253[t]=t1;
     }
   else if(t>=0xfff0 && t<=0xffff) {        // NV-RAM
-    switch(t) {
+    t &= 0x3f;
+    NVRAM[t] = t1;
+    switch(NVRAM[t]) {
       case 0:
         break;
-      case 1:     // il bit 7 attiva/disattiva NMI boh??
-        switch(NVRAM[0] & 0xf) {
-          case 0:
-            break;
-          default:      // qua ci sono i 4 registri e poi la RAM
-            break;
-          }
+      default:      // 
         break;
       }
     }

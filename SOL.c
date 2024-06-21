@@ -29,8 +29,6 @@ extern volatile BYTE keysFeedPtr;
 extern volatile BYTE TIMIRQ;
 
 BYTE DoReset=0,DoIRQ=0,DoHalt=0,DoWait=0;
-#define MAX_WATCHDOG 100      // x30mS v. sotto
-WORD WDCnt=MAX_WATCHDOG;
 BYTE ColdReset=1;
 BYTE Pipe1;
 union /*__attribute__((__packed__))*/ PIPE2 Pipe2;

@@ -34,7 +34,7 @@
 
 #define US_TO_CT_TICKS  (CPU_CT_HZ/1000000UL)    // uS to CoreTimer Ticks
     
-#define VERNUML 1
+#define VERNUML 2
 #define VERNUMH 0
 
 
@@ -137,6 +137,7 @@ void PutValue(SWORD, BYTE);
 int Emulate(int);
 
 int UpdateScreen(SWORD rowIni, SWORD rowFin, BYTE _i);
+int PlotDisplay(WORD pos,BYTE ch,BYTE c);
 
 
 #define LED1 LATEbits.LATE2

@@ -98,12 +98,13 @@ const char Copyr1[]="(C) Dario's Automation 2024 - G.Dar\xd\xa\x0";
 
 // Global Variables:
 BOOL fExit,debug;
-extern BYTE DoIRQ,DoNMI,DoHalt,DoReset,ColdReset;
+extern BYTE DoIRQ,DoHalt,DoReset,ColdReset;
 extern BYTE ram_seg[];
 extern BYTE rom_seg[];
 extern volatile BYTE TIMIRQ;
 extern BYTE U8255_1[4],U8255_2[4];
 extern BYTE U8253[8];
+extern BYTE M48T02[8];
 extern BYTE Keyboard[8];
 volatile PIC32_RTCC_DATE currentDate={1,1,0};
 volatile PIC32_RTCC_TIME currentTime={0,0,0};
@@ -114,6 +115,68 @@ WORD textColors[16]={BLACK,WHITE,RED,CYAN,MAGENTA,GREEN,BLUE,YELLOW,
 
 
 WORD displayColor[3]={BLACK,BRIGHTRED,RED};
+
+int PlotDisplay(WORD pos,BYTE ch,BYTE c) {
+	register int i;
+  int x,y;
+  SWORD color;
+
+#define DIGIT_X_SIZE 14
+#define DIGIT_Y_SIZE 30
+#define DIGIT_OBLIQ 2
+  
+  x=8;
+  y=40;
+  x+=(DIGIT_X_SIZE+4)*pos;
+//	fillRect(x,y,DIGIT_X_SIZE+3,DIGIT_Y_SIZE+1,BLACK);
+  
+  if(c)
+    color=BRIGHTRED;
+  else
+    color=RED;
+  if(!(ch & 1)) {
+    drawLine(x+1+DIGIT_OBLIQ,y+1,x+DIGIT_X_SIZE+DIGIT_OBLIQ,y+1,color);
+    }
+  else
+    drawLine(x+1+DIGIT_OBLIQ,y+1,x+DIGIT_X_SIZE+DIGIT_OBLIQ,y+1,BLACK);
+  if(!(ch & 2)) {
+    drawLine(x+DIGIT_X_SIZE+DIGIT_OBLIQ,y+1,x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,color);
+    }
+  else
+    drawLine(x+DIGIT_X_SIZE+DIGIT_OBLIQ,y+1,x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,BLACK);
+  if(!(ch & 4)) {
+    drawLine(x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+DIGIT_X_SIZE,y+DIGIT_Y_SIZE,color);
+    }
+  else
+    drawLine(x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+DIGIT_X_SIZE,y+DIGIT_Y_SIZE,BLACK);
+  if(!(ch & 8)) {
+    drawLine(x+1,y+DIGIT_Y_SIZE,x+DIGIT_X_SIZE,y+DIGIT_Y_SIZE,color);
+    }
+  else
+    drawLine(x+1,y+DIGIT_Y_SIZE,x+DIGIT_X_SIZE,y+DIGIT_Y_SIZE,BLACK);
+  if(!(ch & 16)) {
+    drawLine(x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+1,y+DIGIT_Y_SIZE,color);
+    }
+  else
+    drawLine(x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+1,y+DIGIT_Y_SIZE,BLACK);
+  if(!(ch & 32)) {
+    drawLine(x+1+DIGIT_OBLIQ,y+1,x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,color);
+    }
+  else
+    drawLine(x+1+DIGIT_OBLIQ,y+1,x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,BLACK);
+  if(!(ch & 64)) {
+    drawLine(x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,color);
+    }
+  else
+    drawLine(x+1+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,BLACK);
+// più bello..?    drawLine(x+2+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,x-1+DIGIT_X_SIZE+DIGIT_OBLIQ/2,y+DIGIT_Y_SIZE/2,BLACK);
+  if(!(ch & 128)) {
+    drawCircle(x+DIGIT_X_SIZE+2,y+DIGIT_Y_SIZE+1,1,color);    // 
+    }
+  else
+    drawCircle(x+DIGIT_X_SIZE+2,y+DIGIT_Y_SIZE+1,1,BLACK);
+  
+	}
 
 
 #define HORIZ_SIZE 256
@@ -1422,12 +1485,8 @@ void __ISR(_TIMER_3_VECTOR,ipl4SRS) TMR_ISR(void) {
 
   dividerTim++;
   if(dividerTim>=1600) {   // 1Hz RTC
-#ifdef SKYNET
-    // vedere registro 0A, che ha i divisori...
-    // i146818RAM[10] & 15
     dividerTim=0;
-    if(!(i146818RAM[11] & 0x80)) {    // SET
-      i146818RAM[10] |= 0x80;
+    if(!(M48T02[1] & 0x80)) {    // STOP
       currentTime.sec++;
       if(currentTime.sec >= 60) {
         currentTime.sec=0;
@@ -1435,8 +1494,7 @@ void __ISR(_TIMER_3_VECTOR,ipl4SRS) TMR_ISR(void) {
         if(currentTime.min >= 60) {
           currentTime.min=0;
           currentTime.hour++;
-          if( ((i146818RAM[11] & 2) && currentTime.hour >= 24) || 
-            (!(i146818RAM[11] & 2) && currentTime.hour >= 12) ) {
+          if(currentTime.hour >= 24) {
             currentTime.hour=0;
             currentDate.mday++;
             i=dayOfMonth[currentDate.mon-1];
@@ -1453,20 +1511,10 @@ void __ISR(_TIMER_3_VECTOR,ipl4SRS) TMR_ISR(void) {
             }
           }
         } 
-      i146818RAM[12] |= 0x90;
-      i146818RAM[10] &= ~0x80;
       } 
     else
-      i146818RAM[10] &= ~0x80;
-    // inserire Alarm... :)
-    i146818RAM[12] |= 0x40;     // in effetti dice che deve fare a 1024Hz! o forse è l'altro flag, bit3 ecc
-    if(i146818RAM[12] & 0x40 && i146818RAM[11] & 0x40 ||
-       i146818RAM[12] & 0x20 && i146818RAM[11] & 0x20 ||
-       i146818RAM[12] & 0x10 && i146818RAM[11] & 0x10)     
-      i146818RAM[12] |= 0x80;
-    if(i146818RAM[12] & 0x80)     
-      RTCIRQ=1;
-#endif
+      ;
+// qua no...      RTCIRQ=1;
 		} 
   
 
