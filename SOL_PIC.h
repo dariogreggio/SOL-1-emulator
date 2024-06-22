@@ -4,7 +4,7 @@
 #define _SOL_PIC_INCLUDED
 
 //---------------------------------------------------------------------------
-
+#include <stdint.h>
 
 /* check if build is for a real debug tool */
 #if defined(__DEBUG) && !defined(__MPLAB_ICD2_) && !defined(__MPLAB_ICD3_) && \
@@ -34,7 +34,7 @@
 
 #define US_TO_CT_TICKS  (CPU_CT_HZ/1000000UL)    // uS to CoreTimer Ticks
     
-#define VERNUML 2
+#define VERNUML 3
 #define VERNUMH 0
 
 
@@ -44,7 +44,7 @@ typedef unsigned char UINT8;
 typedef unsigned char BYTE;
 typedef signed char INT8;
 typedef unsigned short int WORD;
-typedef unsigned short int SWORD;       // v. C64: con int/32bit è più veloce!
+//typedef unsigned short int uint16_t;       // v. C64: con int/32bit è più veloce!
 typedef unsigned long UINT32;
 typedef unsigned long DWORD;
 typedef signed long INT32;
@@ -107,10 +107,10 @@ extern volatile PIC32_RTCC_TIME currentTime;
 
 
 extern BYTE Pipe1;
-extern union /*__attribute__((__packed__))*/ PIPE2 {
-	SWORD x;
+extern union __attribute__((__packed__)) PIPE2 {
+	uint16_t x;
 	BYTE bb[4];
-	struct /*__attribute__((__packed__))*/ {
+	struct __attribute__((__packed__)) {
 		BYTE l;
 		BYTE h;
 //		BYTE u;		 bah no, sposto la pipe quando ci sono le istruzioni lunghe 4...
@@ -130,13 +130,13 @@ unsigned int ReadUART1(void);
 char DataRdyUART1(void);
 
 int decodeKBD(int, long, BOOL);
-BYTE GetPipe(SWORD);
-BYTE GetValue(SWORD);
-SWORD GetIntValue(SWORD);
-void PutValue(SWORD, BYTE);
+BYTE GetPipe(uint16_t);
+BYTE GetValue(uint16_t);
+uint16_t GetIntValue(uint16_t);
+void PutValue(uint16_t, BYTE);
 int Emulate(int);
 
-int UpdateScreen(SWORD rowIni, SWORD rowFin, BYTE _i);
+int UpdateScreen(uint16_t rowIni, uint16_t rowFin, BYTE _i);
 int PlotDisplay(WORD pos,BYTE ch,BYTE c);
 
 

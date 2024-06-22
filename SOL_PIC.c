@@ -90,7 +90,7 @@
 
 
 const char CopyrightString[]= {'S','O','L','-','1',' ','E','m','u','l','a','t','o','r',' ','v',
-	VERNUMH+'0','.',VERNUML/10+'0',(VERNUML % 10)+'0',' ','-',' ', '2','1','/','0','6','/','2','4', 0 };
+	VERNUMH+'0','.',VERNUML/10+'0',(VERNUML % 10)+'0',' ','-',' ', '2','2','/','0','6','/','2','4', 0 };
 
 const char Copyr1[]="(C) Dario's Automation 2024 - G.Dar\xd\xa\x0";
 
@@ -119,7 +119,7 @@ WORD displayColor[3]={BLACK,BRIGHTRED,RED};
 int PlotDisplay(WORD pos,BYTE ch,BYTE c) {
 	register int i;
   int x,y;
-  SWORD color;
+  uint16_t color;
 
 #define DIGIT_X_SIZE 14
 #define DIGIT_Y_SIZE 30
@@ -182,7 +182,7 @@ int PlotDisplay(WORD pos,BYTE ch,BYTE c) {
 #define HORIZ_SIZE 256
 #define VERT_SIZE 192
 #define REAL_SIZE    1      // diciamo :)
-int UpdateScreen(SWORD rowIni, SWORD rowFin, BYTE _i) {
+int UpdateScreen(uint16_t rowIni, uint16_t rowFin, BYTE _i) {
 	register int i,j;
 	int k,y1,y2,x2,row1,row2,curvideopos,oldvideopos,usedpos;
 	register BYTE *p,*p1;

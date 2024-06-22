@@ -1,4 +1,5 @@
 // Paulo Costantino https://github.com/Pconst167/sol-1/tree/main
+// dario.greggio@libero.it (pconst167@gmail.com)
 
 #include <stdio.h>
 #include <ctype.h>
@@ -46,7 +47,7 @@ extern BYTE DoReset,DoIRQ,DoHalt,DoWait;
 extern BYTE ColdReset;
 
 
-BYTE GetValue(SWORD t) {
+BYTE GetValue(uint16_t t) {
 	register BYTE i;
 
 	if(t >= RAM_START && t < (RAM_START+RAM_SIZE)) {
@@ -224,8 +225,8 @@ BYTE GetValue(SWORD t) {
 	}
 
 
-SWORD GetIntValue(SWORD t) {
-	register SWORD i;
+uint16_t GetIntValue(uint16_t t) {
+	register uint16_t i;
 
 	if(t >= RAM_START && t < (RAM_START+RAM_SIZE)) {
 		t-=RAM_START;
@@ -239,7 +240,7 @@ SWORD GetIntValue(SWORD t) {
 	return i;
 	}
 
-BYTE GetPipe(SWORD t) {
+BYTE GetPipe(uint16_t t) {
 
 	if(t >= RAM_START && t < (RAM_START+RAM_SIZE)) {
 		t-=RAM_START;
@@ -261,8 +262,8 @@ BYTE GetPipe(SWORD t) {
 	return Pipe1;
 	}
 
-void PutValue(SWORD t,BYTE t1) {
-	register SWORD i;
+void PutValue(uint16_t t,BYTE t1) {
+	register uint16_t i;
 
 // printf("rom_seg: %04x, p: %04x\n",rom_seg,p);
 
@@ -408,8 +409,8 @@ set_uart1:
 
 	}
 
-void PutIntValue(SWORD t,SWORD t1) {
-	register SWORD i;
+void PutIntValue(uint16_t t,uint16_t t1) {
+	register uint16_t i;
 
 // printf("rom_seg: %04x, p: %04x\n",rom_seg,p);
 

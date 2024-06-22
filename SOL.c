@@ -1,14 +1,11 @@
 // Paulo Costantino https://github.com/Pconst167/sol-1/tree/main
+// dario.greggio@libero.it (pconst167@gmail.com)
 
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <graph.h>
-//#include <dos.h>
-//#include <malloc.h>
 //#include <memory.h>
-//#include <fcntl.h>
 //#include <io.h>
 #include <xc.h>
 
@@ -17,9 +14,9 @@
 #include "Adafruit_ST77xx.h"      // per LOBYTE ecc...
 
 
-#pragma check_stack(off)
+//#pragma check_stack(off)
 // #pragma check_pointer( off )
-#pragma intrinsic( _enable, _disable )
+//#pragma intrinsic( _enable, _disable )
 
 
 extern BYTE fExit;
@@ -31,20 +28,20 @@ extern volatile BYTE TIMIRQ;
 BYTE DoReset=0,DoIRQ=0,DoHalt=0,DoWait=0;
 BYTE ColdReset=1;
 BYTE Pipe1;
-union /*__attribute__((__packed__))*/ PIPE2 Pipe2;
+union __attribute__((__packed__)) PIPE2 Pipe2;
 
 
 
 
 
-union /*__attribute__((__packed__))*/ Z_REG {
-  SWORD x;
-  struct /*__attribute__((__packed__))*/ { 
+union __attribute__((__packed__)) Z_REG {
+  uint16_t x;
+  struct __attribute__((__packed__)) { 
     BYTE l;
     BYTE h;
     } b;
   };
-union /*__attribute__((__packed__))*/ Z_REGISTERS {
+union __attribute__((__packed__)) Z_REGISTERS {
   BYTE  b[10];
   union Z_REG r[5];
   };
@@ -55,9 +52,9 @@ union /*__attribute__((__packed__))*/ Z_REGISTERS {
 #define ID_HALFCARRY 0x10
 #define ID_ZERO 0x40
 #define ID_SIGN 0x80
-union /*__attribute__((__packed__))*/ REGISTRO_F {
+union __attribute__((__packed__)) REGISTRO_F {
   BYTE b;
-  struct /*__attribute__((__packed__))*/ {
+  struct __attribute__((__packed__)) {
     unsigned int Carry: 1;
     unsigned int AddSub: 1;
     unsigned int PV: 1;   // 1=pari 0=dispari
@@ -68,13 +65,13 @@ union /*__attribute__((__packed__))*/ REGISTRO_F {
     unsigned int Sign: 1;
     };
   };
-union /*__attribute__((__packed__))*/ OPERAND {
+union __attribute__((__packed__)) OPERAND {
   BYTE *reg8;
   WORD *reg16;
   WORD mem;
   };
-union /*__attribute__((__packed__))*/ RESULT {
-  struct /*__attribute__((__packed__))*/ {
+union __attribute__((__packed__)) RESULT {
+  struct __attribute__((__packed__)) {
     BYTE l;
     BYTE h;
     } b;
@@ -82,18 +79,7 @@ union /*__attribute__((__packed__))*/ RESULT {
   DWORD d;
   };
     
-// http://clrhome.org/table/
-// https://wikiti.brandonw.net/index.php?title=Z80_Instruction_Set
 int Emulate(int mode) {
-/*Registers (http://www.z80.info/z80syntx.htm#LD)
---------------
- A = 111
- B = 000
- C = 001
- D = 010
- E = 011
- H = 100
- L = 101*/
 #define _ah regs1.r[0].b.h
 #define _bh regs1.r[1].b.h
 #define _ch regs1.r[2].b.h
@@ -109,30 +95,24 @@ int Emulate(int mode) {
 #define _c regs1.r[2].x
 #define _d regs1.r[3].x
 #define _g regs1.r[4].x
-#define WORKING_REG regs1.b[((Pipe1 & 0x38) ^ 8) >> 3]      // la parte bassa/alta è invertita...
-#define WORKING_REG2 regs1.b[(Pipe1 ^ 1) & 7]
-//#define WORKING_REG_CB regs1.b[((Pipe2.b.l & 0x38) ^ 8) >> 3]
-#define WORKING_REG_CB regs1.b[(Pipe2.b.l ^ 1) & 7]
-#define WORKING_BITPOS (1 << ((Pipe2.b.l & 0x38) >> 3))
-#define WORKING_BITPOS2 (1 << ((Pipe2.b.h & 0x38) >> 3))
     
-	SWORD _pc=0;
-	SWORD _si=0;
-	SWORD _di=0;
-	SWORD _sp=0,_ssp=0;
-	SWORD _bp=0;
-	SWORD _ptb=0;
+	uint16_t _pc=0;
+	uint16_t _si=0;
+	uint16_t _di=0;
+	uint16_t _sp=0,_ssp=0;
+	uint16_t _bp=0;
+	uint16_t _ptb=0;
   union Z_REGISTERS _tdr;
 #define _tdrl _tdr.b.l
 #define _tdrh _tdr.b.h
-	BYTE IRQ_Mode=0;
-	BYTE IRQ_Enable1=0,IRQ_Enable2=0;
+	BYTE IRQ_Level=0;
+	BYTE IRQ_Enable1=0;
   union Z_REGISTERS regs1,regs2;
   union RESULT res1,res2,res3;
 //  union OPERAND op1,op2;
 	union REGISTRO_F _flags;
 	union REGISTRO_F _status;
-	/*register*/ SWORD i;
+	/*register*/ uint16_t i;
   int c=0;
 
 
@@ -163,15 +143,6 @@ int Emulate(int mode) {
       }
 
 
-#ifdef ZX80
-    { static oldR=0;
-      if(!(_r & 0x40) && (oldR & 0x40)) {
-        DoIRQ=1;
-        }
-      oldR=_r;
-      }
-#endif
-
     
 		if(debug) {
 //			printf("%04x    %02x\n",_pc,GetValue(_pc));
@@ -179,8 +150,8 @@ int Emulate(int mode) {
 
 		if(DoReset) {
 	  	_pc=GetIntValue(0x0010);
-			IRQ_Enable1=0;IRQ_Enable2=0;
-     	IRQ_Mode=0;
+			IRQ_Enable1=0;
+     	IRQ_Level=0;
 			DoReset=0;DoHalt=0;//DoWait=0;
       keysFeedPtr=255; //meglio ;)
       continue;
@@ -270,7 +241,7 @@ int Emulate(int mode) {
 
 			case 6:   // SYSRET
         _pc=GetValue(_sp++);
-        _pc |= ((SWORD)GetValue(_sp++)) << 8;
+        _pc |= ((uint16_t)GetValue(_sp++)) << 8;
 				
 				break;
 
@@ -292,7 +263,7 @@ Call:
 			case 9:    // RET
 Return:
         _pc=GetValue(_sp++);
-        _pc |= ((SWORD)GetValue(_sp++)) << 8;
+        _pc |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xa:    // JMP @
@@ -339,30 +310,30 @@ Jump:
 
 			case 0x14:		// MOV A,[@]
 				_a=GetValue(Pipe2.x++);
-        _a |= ((SWORD)GetValue(Pipe2.x)) << 8;
+        _a |= ((uint16_t)GetValue(Pipe2.x)) << 8;
 				_pc+=2;
 				break;
 
 			case 0x15:		// MOV A,[D]
 				_a=GetValue(_d);
-        _a |= ((SWORD)GetValue(_d+1)) << 8;
+        _a |= ((uint16_t)GetValue(_d+1)) << 8;
 				break;
 
 			case 0x16:		// MOV A,[D+@]
 				_a=GetValue(_d+Pipe2.x);
-        _a |= ((SWORD)GetValue(_d+Pipe2.x+1)) << 8;
+        _a |= ((uint16_t)GetValue(_d+Pipe2.x+1)) << 8;
 				_pc+=2;
 				break;
 
 			case 0x17:		// MOV A,[BP+@]
 				_a=GetValue(_bp+Pipe2.x);
-	      _a |= ((SWORD)GetValue(_bp+Pipe2.x+1)) << 8;
+	      _a |= ((uint16_t)GetValue(_bp+Pipe2.x+1)) << 8;
 				_pc+=2;
 				break;
 
 			case 0x18:		// MOV A,[BP+D]
 				_a=GetValue(_bp+_d);
-				_a |= ((SWORD)GetValue(_bp+_d+1)) << 8;
+				_a |= ((uint16_t)GetValue(_bp+_d+1)) << 8;
 				break;
 
 			case 0x19:		// MOV AL,@
@@ -441,24 +412,24 @@ Jump:
 
 			case 0x29:		// MOV B,[@]
 				_b=GetValue(Pipe2.x++);
-        _b |= ((SWORD)GetValue(Pipe2.x)) << 8;
+        _b |= ((uint16_t)GetValue(Pipe2.x)) << 8;
 				_pc+=2;
 				break;
 
 			case 0x2a:		// MOV B,[D]
 				_b=GetValue(_d);
-				_b |= ((SWORD)GetValue(_d+1)) << 8;
+				_b |= ((uint16_t)GetValue(_d+1)) << 8;
 				break;
 
 			case 0x2b:		// MOV B,[D+@]
 				_b=GetValue(_d+Pipe2.x);
-        _b |= ((SWORD)GetValue(_d+Pipe2.x+1)) << 8;
+        _b |= ((uint16_t)GetValue(_d+Pipe2.x+1)) << 8;
 				_pc+=2;
 				break;
 
 			case 0x2c:		// MOV B,[BP+@]
 				_b=GetValue(_bp+Pipe2.x);
-	      _b |= ((SWORD)GetValue(_bp+Pipe2.x+1)) << 8;
+	      _b |= ((uint16_t)GetValue(_bp+Pipe2.x+1)) << 8;
 				_pc+=2;
 				break;
 
@@ -744,7 +715,7 @@ aggFlagC2:    //
     
 aggSomma2C:
         _flags.AddSub=0;
-        _flags.HalfCarry = ((SWORD)(res1.b.l) + (SWORD)(res2.b.l)) >= 0x100 ? 1 : 0;   // 
+        _flags.HalfCarry = ((uint16_t)(res1.b.l) + (uint16_t)(res2.b.l)) >= 0x100 ? 1 : 0;   // 
         goto aggAnd2;
 				break;
                                    
@@ -1024,7 +995,7 @@ aggAnd2:      //
         
 calcParity2:
           {
-          SWORD par;
+          uint16_t par;
           par= res3.x >> 1;			// Microchip AN774
           par ^= res3.x;
           res3.x= par >> 2;
@@ -1314,7 +1285,7 @@ aggSottrD2C:
 			case 0x9d:		// SHL A,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_a & 0x8000 ? 1 : 0;
 					_a <<= 1;
           }
 				res3.x=_a;
@@ -1325,7 +1296,7 @@ aggSottrD2C:
 			case 0x9e:		// SHL AL,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_al & 0x80 ? 1 : 0;
 					_al <<= 1;
           }
 				res3.b.l=_a;
@@ -1338,8 +1309,8 @@ aggRotate:
 			case 0x9f:		// SHL B,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
-					_al <<= 1;
+					_flags.Carry=_b & 0x8000 ? 1 : 0;
+					_b <<= 1;
           }
 				res3.x=_b;
 
@@ -1351,7 +1322,7 @@ aggRotate2:
 			case 0xa0:		// SHL BL,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_bl & 0x80 ? 1 : 0;
 					_bl <<= 1;
 	        }
 
@@ -1362,7 +1333,7 @@ aggRotate2:
 			case 0xa1:		// SHR A,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_a & 0x1;
 					_a >>= 1;
           }
 				res3.x=_a;
@@ -1373,7 +1344,7 @@ aggRotate2:
 			case 0xa2:		// SHR AL,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_al & 0x1;
 					_al >>= 1;
           }
 				res3.b.l=_al;
@@ -1384,7 +1355,7 @@ aggRotate2:
 			case 0xa3:		// SHR B,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_b & 0x1;
 					_b >>= 1;
           }
 				res3.x=_b;
@@ -1395,7 +1366,7 @@ aggRotate2:
 			case 0xa4:		// SHR BL,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
+					_flags.Carry=_bl & 0x1;
 					_bl <<= 1;
           }
 				res3.b.l=_bl;
@@ -1406,8 +1377,8 @@ aggRotate2:
 			case 0xa5:		// ASHR A,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
-					_a >>= 1;
+					_flags.Carry=_a & 0x1;
+					_a=((int16_t)_a) >> 1;
           }
 				res3.x=_a;
 
@@ -1417,8 +1388,8 @@ aggRotate2:
 			case 0xa6:		// ASHR AL,CL
 				res2.b.l=_cl;
         while(res2.b.l--) {
-
-					_al >>= 1;
+					_flags.Carry=_a & 0x1;
+					_al=((int8_t)_al) >> 1;
           }
 				res3.b.l=_al;
 
@@ -1428,9 +1399,9 @@ aggRotate2:
 
 			case 0xa9:		// LOOPC @
 				_pc++;
-			  _b--;
-				if(_b)
-					_pc+=(signed char)Pipe2.b.l;
+			  _c--;
+				if(_c)
+					_pc+=(int8_t)Pipe2.b.l;
 
 
 
@@ -1755,28 +1726,28 @@ compare:
 				break;
 
 			case 0xce:    // JG @
-			  if(0)
+			  if(!_flags.Carry && !_flags.Zero)
 			    goto Jump;
 			  else
 			    _pc+=2;
 				break;
 
 			case 0xcf:    // JGE @
-			  if(0)
+			  if(1 & (~(_flags.Sign ^ _flags.Ovf)))   // v. 68000
 			    goto Jump;
 			  else
 			    _pc+=2;
 				break;
 
 			case 0xd0:    // JLEU @
-			  if(0)
+			  if(_flags.Carry || _flags.Zero)
 			    goto Jump;
 			  else
 			    _pc+=2;
 				break;
 
 			case 0xd1:    // JGU @
-			  if(0)
+			  if(!_flags.Carry)
 			    goto Jump;
 			  else
 			    _pc+=2;
@@ -1823,12 +1794,12 @@ compare:
 				_pc+=2;
 				break;
 
-			case 0xd7:    // PUSH A; PUSH WORD@
+			case 0xd7:    // PUSH A
 				PutValue(--_sp,_ah);
 				PutValue(--_sp,_al);
 				break;
 
-			case 0xd8:    // PUSH B, PUSH G
+			case 0xd8:    // PUSH B
 				PutValue(--_sp,_bh);
 				PutValue(--_sp,_bl);
 				break;
@@ -1883,22 +1854,22 @@ compare:
 
 			case 0xe4:    // POP A
 				_a=GetValue(_sp++);
-				_a |= ((SWORD)GetValue(_sp++)) << 8;
+				_a |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xe5:    // POP B
 				_b=GetValue(_sp++);
-				_b |= ((SWORD)GetValue(_sp++)) << 8;
+				_b |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xe6:    // POP C
 				_c=GetValue(_sp++);
-				_c |= ((SWORD)GetValue(_sp++)) << 8;
+				_c |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xe7:    // POP D
 				_d=GetValue(_sp++);
-				_d |= ((SWORD)GetValue(_sp++)) << 8;
+				_d |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xe8:    // POP AL
@@ -1931,17 +1902,17 @@ compare:
 
 			case 0xef:    // POP SI
 				_si=GetValue(_sp++);
-				_si |= ((SWORD)GetValue(_sp++)) << 8;
+				_si |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xf0:    // POP DI
 				_di=GetValue(_sp++);
-				_di |= ((SWORD)GetValue(_sp++)) << 8;
+				_di |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 			case 0xf1:    // POP BP
 				_bp=GetValue(_sp++);
-				_bp |= ((SWORD)GetValue(_sp++)) << 8;
+				_bp |= ((uint16_t)GetValue(_sp++)) << 8;
 				break;
 
 
@@ -1959,7 +1930,7 @@ compare:
 				res1.b.l=_a;
 				res2.b.l=GetValue(_c++);
         
-aggCPI:
+aggCMPSB:
 				res1.b.h=res2.b.h=0;
 				res3.x=res1.x-res2.x;
         _flags.AddSub=1;
@@ -1970,11 +1941,15 @@ aggCPI:
 				break;
 
 			case 0xf4:    // SCANSB
+        res1.b.l=_al;
+				res2.b.l=GetValue(_si);
+        _flags.Zero=res1.b.l==res2.b.l ? 1 : 0;     // verificare...
 				break;
 
 			case 0xf5:    // MOVSB
 				PutValue(_b++,GetValue(_c++));
-aggLDI:
+        
+aggMOVSB:
 				_d--;
         _flags.AddSub=_flags.HalfCarry=0;
 				_flags.PV=!!_d;
@@ -2021,7 +1996,7 @@ aggLDI:
 				switch(GetPipe(_pc++)) {
 					case 7:    // CALL [@+A]
 						i=GetValue(Pipe2.x+_a);
-						i |= ((SWORD)GetValue(Pipe2.x+1+_a)) << 8;
+						i |= ((uint16_t)GetValue(Pipe2.x+1+_a)) << 8;
 						_pc+=2;
 						goto Call;
 						break;
@@ -2031,22 +2006,22 @@ aggLDI:
 						break;
 
 					case 0x0c:    // STI
-						IRQ_Enable1=IRQ_Enable2=1;
+						IRQ_Enable1=1;
 						break;
 
 					case 0x0d:    // CLI
-						IRQ_Enable1=IRQ_Enable2=0;
+						IRQ_Enable1=0;
 						break;
 
 					case 0xa:    // JMP [@+BL]
 						i=GetValue(Pipe2.x+_bl);
-						i |= ((SWORD)GetValue(Pipe2.x+1+_bl)) << 8;
+						i |= ((uint16_t)GetValue(Pipe2.x+1+_bl)) << 8;
 						_pc=i;
 						break;
 
 					case 0xb:    // JMP [@+BH]
 						i=GetValue(Pipe2.x+_bh);
-						i |= ((SWORD)GetValue(Pipe2.x+1+_bh)) << 8;
+						i |= ((uint16_t)GetValue(Pipe2.x+1+_bh)) << 8;
 						_pc=i;
 						break;
 
@@ -2082,13 +2057,13 @@ aggLDI:
 
 					case 0x17:		// MOV A,[SP+@]
 						_a=GetValue(_sp+Pipe2.x);
-						_a |= ((SWORD)GetValue(_sp+Pipe2.x+1)) << 8;
+						_a |= ((uint16_t)GetValue(_sp+Pipe2.x+1)) << 8;
 						_pc+=2;
 						break;
 
 					case 0x18:		// MOV A,[SP+D]
 						_a=GetValue(_sp+_d);
-						_a |= ((SWORD)GetValue(_sp+_d+1)) << 8;
+						_a |= ((uint16_t)GetValue(_sp+_d+1)) << 8;
 						break;
 
 					case 0x19:		// MOV AL,@
@@ -2122,7 +2097,7 @@ aggLDI:
 
 					case 0x26:		// MOV B,[BP+D]
 						_b=GetValue(_bp+_d);
-						_b |= ((SWORD)GetValue(_bp+_d+1)) << 8;
+						_b |= ((uint16_t)GetValue(_bp+_d+1)) << 8;
 						break;
 
 					case 0x27:		// MOV B,G
@@ -2137,7 +2112,7 @@ aggLDI:
 
 					case 0x2c:		// MOV B,[SP+@]
 						_b=GetValue(_sp+Pipe2.x);
-						_b |= ((SWORD)GetValue(_sp+Pipe2.x+1)) << 8;
+						_b |= ((uint16_t)GetValue(_sp+Pipe2.x+1)) << 8;
 						_pc+=2;
 						break;
 
@@ -2411,27 +2386,27 @@ aggLDI:
 						break;
 
 					case 0x71:		// SEQ
-						;
+						_b=!_flags.Zero ? 0xffff : 0;    // 
 						break;
 
 					case 0x72:		// SNEQ
-						;
+						_b=_flags.Zero ? 0xffff : 0;    // 
 						break;
 
 					case 0x73:		// SLT
-						;
+						_b=(_flags.Sign ^ _flags.Ovf) ? 0xffff : 0;    // pare, finire! frocio
 						break;
 
 					case 0x74:		// SLE
-						;
+						_b=(_flags.Zero | (_flags.Sign ^ _flags.Ovf)) ? 0xffff : 0;    // pare, finire! (v.68000
 						break;
 
 					case 0x75:		// SLU
-						;
+						_b=_flags.Sign ? 0xffff : 0;    // pare, finire!
 						break;
 
 					case 0x76:		// SLEU
-						;
+						_b=(_flags.Sign | _flags.Zero) ? 0xffff : 0;    // pare, finire!
 						break;
 
 					case 0x77:		// INC B
@@ -2467,19 +2442,19 @@ aggLDI:
 						break;
 
 					case 0x7f:		// SGT
-						;
+						_b=!(_flags.Zero | _flags.Carry) ? 0xffff : 0;    // verificare stronzo
 						break;
 
 					case 0x80:		// SGE
-						;
+						_b=(1 & (~(_flags.Sign ^ _flags.Ovf))) ? 0xffff : 0;    // (v.68000)
 						break;
 
 					case 0x81:		// SGU
-						;
+						_b=!(_flags.Carry | _flags.Zero) ? 0xffff : 0;    // 
 						break;
 
 					case 0x82:		// SGEU
-						;
+						_b=!_flags.Carry ? 0xffff : 0;    // 
 						break;
 
 					case 0x83:		// MOV CL,GH
@@ -2559,8 +2534,8 @@ aggLDI:
 					case 0x8e:		// ASHR B,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
-							_b >>= 1;
+              _flags.Carry=_a & 0x1;
+              _b=((int16_t)_b) >> 1;
               }
 						res3.x=_b;
 
@@ -2570,8 +2545,8 @@ aggLDI:
 					case 0x8f:		// ASHR BL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
-							_bl <<= 1;
+              _flags.Carry=_a & 0x1;
+              _bl=((int16_t)_bl) >> 1;
               }
 						res3.b.l=_bl;
 
@@ -2581,8 +2556,8 @@ aggLDI:
 					case 0x90:		// ASHR B,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
-							_b >>= 1;
+    					_flags.Carry=_a & 0x1;
+        			_b=((int16_t)_b) >> 1;
               }
 						res3.x=_b;
 
@@ -2593,8 +2568,8 @@ aggLDI:
 					case 0x91:		// ASHR BL,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
-							_bl >>= 1;
+    					_flags.Carry=_a & 0x1;
+        			_bl=((int8_t)_bl) >> 1;
               }
 						res3.b.l=_bl;
 
@@ -2678,7 +2653,7 @@ aggLDI:
 					case 0x9d:		// SHL A,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_a & 0x8000 ? 1 : 0;
 							_a <<= 1;
               }
 						res3.x=_a;
@@ -2690,7 +2665,7 @@ aggLDI:
 					case 0x9e:		// SHL AL,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_a & 0x80 ? 1 : 0;
 							_al <<= 1;
               }
 						res3.b.l=_al;
@@ -2702,7 +2677,7 @@ aggLDI:
 					case 0x9f:		// SHL B,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+              _flags.Carry=_b & 0x8000 ? 1 : 0;
 							_b <<= 1;
               }
 						res3.x=_b;
@@ -2714,7 +2689,7 @@ aggLDI:
 					case 0xa0:		// SHL BL,@
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+              _flags.Carry=_bl & 0x8000 ? 1 : 0;
 							_bl <<= 1;
               }
 						res3.b.l=_bl;
@@ -2726,7 +2701,7 @@ aggLDI:
 					case 0xa1:		// SHR A,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_a & 0x1;
 							_a >>= 1;
               }
 
@@ -2738,7 +2713,7 @@ aggLDI:
 					case 0xa2:		// SHR AL,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_al & 0x1;
 							_al >>= 1;
               }
 						res3.b.l=_al;
@@ -2750,7 +2725,7 @@ aggLDI:
 					case 0xa3:		// SHR B,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_b & 0x1;
 							_b >>= 1;
               }
 
@@ -2762,7 +2737,7 @@ aggLDI:
 					case 0xa4:		// SHR BL,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
+    					_flags.Carry=_bl & 0x1;
 							_bl >>= 1;
               }
 						res3.b.l=_bl;
@@ -2774,8 +2749,8 @@ aggLDI:
 					case 0xa5:		// ASHR A,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
-							_a >>= 1;
+    					_flags.Carry=_a & 0x1;
+							_a = ((int16_t)_a) >> 1;
               }
 
 						res3.x=_a;
@@ -2786,8 +2761,8 @@ aggLDI:
 					case 0xa6:		// ASHR AL,@
 						res2.b.l=Pipe2.b.l;
             while(res2.b.l--) {
-
-							_al >>= 1;
+    					_flags.Carry=_al & 0x1;
+							_al = ((int8_t)_al) >> 1;
               }
 						res3.b.l=_al;
 
@@ -2796,15 +2771,21 @@ aggLDI:
 						break;
 
 					case 0xa7:		// SAND A,B
-						;
+						_a &= _b;   // BOH verificare il coglione
 						break;
 
 					case 0xa8:		// SOR A,B
-						;
+						_a |= _b;   // BOH 
 						break;
 
 					case 0xa9:		// LOOPB @
-						;
+            _pc++;
+            _b--;
+            if(_b)
+              _pc+=(int8_t)Pipe2.b.l;
+
+
+
 						break;
 
 					case 0xaa:		// SWP A
@@ -2820,13 +2801,25 @@ aggLDI:
 						break;
 
 					case 0xac:		// MUL A,C
+            res1.d=res2.d=0;
 						res1.x=_a;
 						res2.x=_c;
-						res3.x=res1.x*res2.x;
+						res3.d=res1.d*res2.d;
 						_a=res3.x;
 
 						goto aggFlag2;
 
+						break;
+
+					case 0xaf:    // CMP32 GA,CB
+						res1.d=MAKELONG(_a,_g);
+						res2.d=MAKELONG(_b,_c);
+
+            res3.d=res1.d-res2.d;
+//??            _flags.HalfCarry = ((res1.x) - (res2.x)) & 0xff00 ? 1 : 0;   // 
+//??            _flags.PV = !!HIWORD(res3.d) != !!((res3.x & 0x8000) ^ (res1.x & 0x8000) ^ (res2.x & 0x8000));
+            _flags.AddSub=1;
+            goto aggFlagC2;
 						break;
 
 					case 0xb1:    // SAND32 GA,CB                    B1FD  6    NOP      1              
@@ -2865,10 +2858,11 @@ aggLDI:
 					case 0xde:		// ROL A,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_a & 0x8000 ? 1 : 0;
 							_a <<= 1;
+  						_a |= _flags.Carry;
               }
-						res3.x=_b;
+						res3.x=_a;
 
             goto aggRotate2;
 						break;
@@ -2876,8 +2870,9 @@ aggLDI:
 					case 0xdf:		// ROL AL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_al & 0x80 ? 1 : 0;
 							_al <<= 1;
+  						_al |= _flags.Carry;
               }
 						res3.b.l=_al;
 
@@ -2887,9 +2882,10 @@ aggLDI:
 					case 0xe0:		// RLC A,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-							_flags.Carry=_a & 0x80 ? 1 : 0;
+							i=_flags.Carry;
+							_flags.Carry=_a & 0x8000 ? 1 : 0;
 							_a <<= 1;
-							_a |= _flags.Carry;
+							_a |= i;
               }
 						res3.x=_a;
 
@@ -2899,9 +2895,10 @@ aggLDI:
 					case 0xe1:		// RLC AL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
+							i=_flags.Carry;
 							_flags.Carry=_a & 0x80 ? 1 : 0;
 							_al <<= 1;
-							_al |= _flags.Carry;
+							_al |= i;
               }
 						res3.b.l=_al;
 
@@ -2911,8 +2908,9 @@ aggLDI:
 					case 0xe2:		// ROR A,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-              
+  						_flags.Carry=_a & 0x8000 ? 1 : 0;
 							_a >>= 1;
+  						_a |= _flags.Carry ? 0x8000 : 0;
               }
 						res3.x=_a;
 
@@ -2922,7 +2920,9 @@ aggLDI:
 					case 0xe3:		// ROR AL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
+  						_flags.Carry=_a & 0x80 ? 1 : 0;
 							_al >>= 1;
+  						_a |= _flags.Carry ? 0x80 : 0;
               }
 						res3.b.l=_al;
 
@@ -2930,9 +2930,9 @@ aggLDI:
 						break;
 
 					case 0xe4:		// RRC A,CL
-						_flags.Carry=_a & 1;
 						res2.b.l=_cl;
             while(res2.b.l--) {
+  						_flags.Carry=_a & 1;
 							_a >>= 1;
 							if(_flags.Carry)
 								_a |= 0x8000;
@@ -2943,9 +2943,9 @@ aggLDI:
 						break;
 
 					case 0xe5:		// RRC AL,CL
-						_flags.Carry=_a & 1;
 						res2.b.l=_cl;
             while(res2.b.l--) {
+  						_flags.Carry=_al & 1;
 							_al >>= 1;
 							if(_flags.Carry)
 								_al |= 0x80;
@@ -2958,8 +2958,9 @@ aggLDI:
 					case 0xe6:		// ROL B,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_a & 0x8000 ? 1 : 0;
 							_b <<= 1;
+  						_b |= _flags.Carry ? 0x8000 : 0;
               }
 						res3.x=_b;
 
@@ -2969,8 +2970,9 @@ aggLDI:
 					case 0xe7:		// ROL BL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_a & 0x80 ? 1 : 0;
 							_bl <<= 1;
+  						_bl |= _flags.Carry ? 0x80 : 0;
               }
 						res3.b.l=_bl;
 
@@ -3004,8 +3006,9 @@ aggLDI:
 					case 0xea:		// ROR B,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_b & 0x8000 ? 1 : 0;
 							_b >>= 1;
+  						_b |= _flags.Carry ? 0x8000 : 0;
               }
 						res3.x=_b;
 
@@ -3015,8 +3018,9 @@ aggLDI:
 					case 0xeb:		// ROR BL,CL
 						res2.b.l=_cl;
             while(res2.b.l--) {
-
+  						_flags.Carry=_b & 0x80 ? 1 : 0;
 							_bl >>= 1;
+  						_b |= _flags.Carry ? 0x80 : 0;
               }
 						res3.b.l=_bl;
 
@@ -3024,10 +3028,11 @@ aggLDI:
 						break;
 
 					case 0xec:		// RRC B,CL
-						_flags.Carry=_a & 1;
             while(res2.b.l--) {
+              i=_flags.Carry;
+  						_flags.Carry=_b & 1;
 							_b >>= 1;
-							if(_flags.Carry)
+							if(i)
 								_b |= 0x8000;
 							}
 						res3.x=_b;
@@ -3036,11 +3041,12 @@ aggLDI:
 						break;
 
 					case 0xed:		// RRC BL,CL
-						_flags.Carry=_a & 1;
             while(res2.b.l--) {
+              i=_flags.Carry;
+  						_flags.Carry=_bl & 1;
 							_bl >>= 1;
-							if(_flags.Carry)
-								_a |= 0x80;
+							if(i)
+								_bl |= 0x80;
 							}
 						res3.b.l=_bl;
 
@@ -3049,7 +3055,7 @@ aggLDI:
 
 					case 0xf1:    // POP G
 						_g=GetValue(_sp++);
-						_g |= ((SWORD)GetValue(_sp++)) << 8;
+						_g |= ((uint16_t)GetValue(_sp++)) << 8;
 						break;
 
 					case 0xf3:    // REPZ CMPSB (REPE)
@@ -3060,7 +3066,7 @@ aggLDI:
               if(_d) 
                 _pc-=2;			// così ripeto e consento IRQ...
               }
-            goto aggCPI;    // 
+            goto aggCMPSB;    // 
 						break;
 
 					case 0xf6:    // REPNZ CMPSB (REPNE)
@@ -3071,7 +3077,7 @@ aggLDI:
               if(_d) 
                 _pc-=2;			// così ripeto e consento IRQ...
               }
-            goto aggCPI;    // 
+            goto aggCMPSB;    // 
 						break;
 
 					case 0xf5:    // REP MOVSB
@@ -3084,7 +3090,7 @@ aggLDI:
 						break;
 
 					case 0xf7:    // REP STOSB
-						PutValue(_di++,GetValue(_c++) /*_al*/);
+						PutValue(_di++,_al);
 						_d--;
 						if(_d)
 							_pc-=2;			// così ripeto e consento IRQ...
